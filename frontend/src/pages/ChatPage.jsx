@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import API from "../services/api";
 import VoiceButton from "../components/VoiceButton";
 import useTextToSpeech from "../hooks/useTextToSpeech";
-import PaigeAvatar from "../components/PaigeAvatar";
+import Orb from "../components/Orb";
 
 function ChatPage() {
 
@@ -16,6 +16,8 @@ function ChatPage() {
 
   const messagesEndRef = useRef(null);
   const voiceButtonRef = useRef(null);
+
+  const [orbState, setOrbState] = useState("idle");
 
   useEffect(() => {
 
@@ -33,6 +35,7 @@ function ChatPage() {
 
     // STOP LISTENING STATE
     setIsListening(false);
+    setOrbState("thinking");
 
     // USER MESSAGE
     const userMessage = {
@@ -80,10 +83,12 @@ function ChatPage() {
       if (res.data.reply) {
 
         setIsSpeaking(true);
+        setOrbState("speaking");
 
         speak(res.data.reply, () => {
 
           setIsSpeaking(false);
+          setOrbState("idle");
 
           // RESTART MIC
           setTimeout(() => {
@@ -108,6 +113,7 @@ function ChatPage() {
 
       setIsSpeaking(false);
       setIsListening(false);
+      setOrbState("idle");
     }
   };
 
@@ -116,55 +122,104 @@ function ChatPage() {
     console.log("User said:", text);
 
     setIsListening(false);
+    setOrbState("thinking");
 
     await sendMessage(text);
   };
 
   return (
 
-    <div className="h-screen bg-[#0f0f0f] text-white flex">
+    <div
+      className="h-screen text-white flex"
+      style={{
+        background: `
+        radial-gradient(
+          circle at top center,
+          rgba(59,130,246,0.18),
+          transparent 35%
+        ),
+        linear-gradient(
+          180deg,
+          #020617,
+          #030712,
+          #000000
+        )
+        `,
+      }}
+    >
 
       {/* SIDEBAR */}
-      <div className="w-72 border-r border-zinc-800 p-4">
+      <div className="w-72 m-4 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
 
-        <h1 className="text-2xl font-bold">
-          PAIGE AI
+        <h1 className="text-3xl font-bold tracking-wide">
+          PAIGE
         </h1>
+
+        <p className="text-zinc-400 mt-2">
+          Personal AI Guide Engine
+        </p>
 
       </div>
 
       {/* MAIN */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col items-center">
 
-        {/* AVATAR */}
-        <div className="pt-8">
+        {/* ORB */}
+        <div className="flex flex-col items-center justify-center py-10">
 
-          <PaigeAvatar
-            listening={isListening}
-            speaking={isSpeaking}
-          />
+          <Orb state={orbState} />
+
+          <h1 className="text-4xl font-semibold text-white mt-8">
+            PAIGE
+          </h1>
+
+          <p className="text-zinc-500 mt-3">
+            {orbState === "idle" && "Ready"}
+            {orbState === "listening" && "Listening"}
+            {orbState === "thinking" && "Thinking"}
+            {orbState === "speaking" && "Speaking"}
+          </p>
 
         </div>
 
         {/* MESSAGES */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 w-full overflow-y-auto">
 
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-4 px-8">
 
-            {messages.map((msg, index) => (
+            {messages.length === 0 ? (
 
-              <div
-                key={index}
-                className={
-                  msg.role === "user"
-                    ? "bg-white text-black p-4 rounded-2xl ml-auto w-fit max-w-xl"
-                    : "bg-zinc-900 p-4 rounded-2xl w-fit max-w-xl"
-                }
-              >
-                {msg.content}
+              <div className="text-center mt-16">
+                <p className="text-zinc-500 text-lg">
+                  Click the microphone or type a message to begin.
+                </p>
               </div>
 
-            ))}
+            ) : (
+
+              messages.map((msg, index) => (
+
+                <div
+                  key={index}
+                  className={
+                    <div
+                      key={index}
+                      className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-3xl max-w-3xl"
+                    >
+                      <div className="text-xs uppercase text-zinc-400 mb-2">
+                        {msg.role === "user" ? "You" : "Paige"}
+                      </div>
+
+                      {msg.content}
+                    </div>
+                  }
+                >
+                  {msg.content}
+                </div>
+
+              ))
+
+            )}
 
             <div ref={messagesEndRef} />
 
@@ -173,13 +228,28 @@ function ChatPage() {
         </div>
 
         {/* INPUT */}
-        <div className="border-t border-zinc-800 p-4">
+        <div className="p-6">
 
-          <div className="max-w-3xl mx-auto flex gap-3">
+          <div className="
+            max-w-3xl
+            mx-auto
+            flex
+            gap-3
+            bg-white/5
+            backdrop-blur-xl
+            border
+            border-white/10
+            rounded-3xl
+            p-3
+            ">
 
             <VoiceButton
               ref={voiceButtonRef}
               onTranscript={handleTranscript}
+              onListeningStart={() => {
+                setIsListening(true);
+                setOrbState("listening");
+              }}
             />
 
             <input
